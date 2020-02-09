@@ -11,6 +11,7 @@ use {
         Response,
         Server,
     },
+    std::env,
     std::net::SocketAddr,
 };
 
@@ -25,7 +26,10 @@ async fn proxy_req(_req: Request<Body>) -> Result<Response<Body>, hyper::Error> 
 async fn main() {
     pretty_env_logger::init();
     // Set the address to run our socket on.
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    // let my_int = my_string.parse::<i32>().unwrap();
+    let port: u16 = env::var("PORT").ok().map_or(3000, |v| v.parse().unwrap());
+
+    let addr = SocketAddr::from(([127, 0, 0, 1], port));
 
     // Call our `run_server` function, which returns a future.
     // As with every `async fn`, for `run_server` to do anything,
