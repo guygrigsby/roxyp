@@ -29,7 +29,7 @@ async fn main() {
     // let my_int = my_string.parse::<i32>().unwrap();
     let port: u16 = env::var("PORT").ok().map_or(3000, |v| v.parse().unwrap());
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], port));
+    let addr = SocketAddr::from(([0, 0, 0, 0], port));
 
     // Call our `run_server` function, which returns a future.
     // As with every `async fn`, for `run_server` to do anything,
