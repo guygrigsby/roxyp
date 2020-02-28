@@ -1,5 +1,4 @@
 use {
-    http::uri::Authority,
     hyper::{
         client::{HttpConnector, ResponseFuture},
         //Error,
@@ -13,20 +12,12 @@ use {
 #[derive(Clone, Debug)]
 pub struct ProxyClient {
     http_client: Client<HttpConnector, Body>,
-    upstream: Authority,
-}
-
-#[derive(Clone, Copy, Debug)]
-struct Config {
-    retry_canceled_requests: bool,
-    set_host: bool,
 }
 
 impl ProxyClient {
-    pub fn new(up: Authority) -> ProxyClient {
+    pub fn new() -> ProxyClient {
         ProxyClient {
             http_client: Client::new(),
-            upstream: up,
         }
     }
     pub fn request(&self, req: Request<Body>) -> ResponseFuture {

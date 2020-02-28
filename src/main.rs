@@ -1,8 +1,5 @@
-//extern crate futures;
-//use futures::future::*;
-//use http::StatusCode;
 use {
-    http::uri::Authority,
+    http::uri::Scheme,
     http::Uri,
     hyper::{
         header::HOST,
@@ -25,21 +22,37 @@ use {
 
 mod proxy;
 
+fn create_up_req(req: Request<Body>) -> Request<Body> {
+    debug!("Creating Upstream Request {:?}", req);
+    let (mut parts, body) = req.into_parts();
+
+    parts.uri = Uri::builder()
+        .scheme(parts.uri.scheme().unwrap_or_else(|| &Scheme::HTTP).clone())
+        .authority(
+            parts
+                .headers
+                .get(HOST)
+                .expect("Missing Host header")
+                .to_str()
+                .expect("failed to parse Host header"),
+        )
+        .path_and_query(
+            parts
+                .uri
+                .path_and_query()
+                .expect("Cannot get path and query from original request")
+                .clone(),
+        )
+        .build()
+        .expect("Failed to build upstream URI");
+
+    return Request::from_parts(parts, body);
+}
+
 async fn proxy_req(client: ProxyClient, req: Request<Body>) -> Result<Response<Body>, Error> {
     debug!("Request {:?}", req);
 
-    let (mut parts, body) = req.into_parts();
-    let upstream_host = parts.headers.get(HOST).unwrap();
-    let uri = Uri::builder()
-        .scheme("https")
-        .authority(upstream_host.to_str().unwrap())
-        .path_and_query("/")
-        .build();
-    parts.uri = uri.unwrap();
-
-    let upstream_req = Request::from_parts(parts, body);
-
-    let res = client.request(upstream_req).await?;
+    let res = client.request(create_up_req(req)).await?;
 
     debug!("Response {:?}", res);
 
@@ -55,9 +68,7 @@ async fn main() {
         env::var("PORT").ok().map_or(3000, |v| v.parse().unwrap()),
     ));
 
-    let upstream = Authority::from_static("example.com");
-    //let proxy_uri = "http://my-proxy:8080".parse().unwrap();
-    let client = ProxyClient::new(upstream);
+    let client = ProxyClient::new();
 
     info!("Starting Server on {}", addr);
 
