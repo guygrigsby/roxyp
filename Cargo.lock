@@ -33,12 +33,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8aac770f1885fd7e387acedd76065302551364496e46b3dd00860b2f8359b9d"
 
 [[package]]
-name = "base64"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b41b7ea54a0c9d92199de89e20e58d49f02f8e699814ef3fdf266f6f748d15c7"
-
-[[package]]
 name = "bitflags"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -339,24 +333,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hyper-proxy"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0cf120ed868e8e0cd22279cc8196c8db126884a5dbb01e0f528018048efd8fee"
-dependencies = [
- "bytes",
- "futures",
- "http",
- "hyper",
- "hyper-tls",
- "native-tls",
- "tokio",
- "tokio-tls",
- "tower-service",
- "typed-headers",
-]
-
-[[package]]
 name = "hyper-tls"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -429,12 +405,6 @@ name = "memchr"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3197e20c7edb283f87c071ddfc7a2cca8f8e0b888c242959846a6fce03c72223"
-
-[[package]]
-name = "mime"
-version = "0.3.16"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a60c7ce501c71e03a9c9c0d35b861413ae925bd979cc7a4e30d060069aaac8d"
 
 [[package]]
 name = "mio"
@@ -768,10 +738,12 @@ dependencies = [
  "futures",
  "http",
  "hyper",
- "hyper-proxy",
+ "hyper-tls",
  "log",
+ "native-tls",
  "pretty_env_logger",
  "tokio",
+ "tokio-tls",
 ]
 
 [[package]]
@@ -957,19 +929,6 @@ name = "try-lock"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e604eb7b43c06650e854be16a2a03155743d3752dd1c943f6829e26b7a36e382"
-
-[[package]]
-name = "typed-headers"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3179a61e9eccceead5f1574fd173cf2e162ac42638b9bf214c6ad0baf7efa24a"
-dependencies = [
- "base64",
- "bytes",
- "chrono",
- "http",
- "mime",
-]
 
 [[package]]
 name = "unicode-xid"

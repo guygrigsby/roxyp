@@ -1,27 +1,109 @@
 use {
+    http::uri::Scheme,
+    http::Uri,
     hyper::{
         client::{HttpConnector, ResponseFuture},
+        header::HOST,
         //Error,
         Body,
         Client,
         Request,
     },
+    hyper_tls::HttpsConnector,
     log::debug,
 };
 
 #[derive(Clone, Debug)]
-pub struct ProxyClient {
-    http_client: Client<HttpConnector, Body>,
+pub struct HostHeader {
+    http_client: Client<HttpsConnector<HttpConnector>, Body>,
 }
 
-impl ProxyClient {
-    pub fn new() -> ProxyClient {
-        ProxyClient {
-            http_client: Client::new(),
-        }
-    }
-    pub fn request(&self, req: Request<Body>) -> ResponseFuture {
+#[derive(Clone, Debug)]
+pub struct FixedUpstream {
+    http_client: Client<HttpsConnector<HttpConnector>, Body>,
+    upstream: String,
+}
+
+pub trait Proxy {
+    fn request(&self, req: Request<Body>) -> ResponseFuture;
+}
+
+impl Proxy for FixedUpstream {
+    fn request(&self, req: Request<Body>) -> ResponseFuture {
         debug!("Request in proxy client {:?}", req);
-        return self.http_client.request(req);
+        return self.http_client.request(self.create_up_req(req));
     }
 }
+
+impl FixedUpstream {
+    pub fn new(upstream: String) -> Self {
+        let https = HttpsConnector::new();
+
+        FixedUpstream {
+            http_client: Client::builder().build::<_, Body>(https),
+            upstream: upstream,
+        }
+    }
+
+    fn create_up_req(&self, req: Request<Body>) -> Request<Body> {
+        debug!("Creating Upstream Request {:?}", req);
+        let (mut parts, body) = req.into_parts();
+
+        parts.uri = Uri::builder()
+            .scheme(parts.uri.scheme().unwrap_or_else(|| &Scheme::HTTP).clone())
+            .authority(self.upstream.as_str())
+            .path_and_query(
+                parts
+                    .uri
+                    .path_and_query()
+                    .expect("Cannot get path and query from original request")
+                    .clone(),
+            )
+            .build()
+            .expect("Failed to build upstream URI");
+        //TODO headers
+
+        return Request::from_parts(parts, body);
+    }
+}
+//impl HostHeader {
+//    pub fn new() -> Self {
+//        let https = HttpsConnector::new();
+//
+//        HostHeader {
+//            http_client: Client::builder().build::<_, Body>(https),
+//        }
+//    }
+//
+//    pub fn request(&self, req: Request<Body>) -> ResponseFuture {
+//        debug!("Request in proxy client {:?}", req);
+//        return self.http_client.request(self.create_up_req(req));
+//    }
+//
+//    fn create_up_req(&self, req: Request<Body>) -> Request<Body> {
+//        debug!("Creating Upstream Request {:?}", req);
+//        let (mut parts, body) = req.into_parts();
+//
+//        parts.uri = Uri::builder()
+//            .scheme(parts.uri.scheme().unwrap_or_else(|| &Scheme::HTTPS).clone())
+//            .authority(
+//                parts
+//                    .headers
+//                    .get(HOST)
+//                    .expect("Missing Host header")
+//                    .to_str()
+//                    .expect("failed to parse Host header"),
+//            )
+//            .path_and_query(
+//                parts
+//                    .uri
+//                    .path_and_query()
+//                    .expect("Cannot get path and query from original request")
+//                    .clone(),
+//            )
+//            .build()
+//            .expect("Failed to build upstream URI");
+//
+//        return Request::from_parts(parts, body);
+//    }
+//}

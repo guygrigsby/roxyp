@@ -1,20 +1,11 @@
 use {
-    http::uri::Scheme,
-    http::Uri,
     hyper::{
-        header::HOST,
-        // Following functions are used by Hyper to handle a `Request`
-        // and returning a `Response` in an asynchronous manner by using a Future
         service::{make_service_fn, service_fn},
-        // Miscellaneous types from Hyper for working with HTTP.
-        Body,
-        Error,
-        Request,
-        Response,
-        Server,
+        Body, Error, Request, Response, Server,
     },
     log::{debug, info},
-    proxy::ProxyClient,
+    proxy::FixedUpstream,
+    proxy::Proxy,
     std::convert::Infallible,
     std::env,
     std::net::SocketAddr,
@@ -22,37 +13,10 @@ use {
 
 mod proxy;
 
-fn create_up_req(req: Request<Body>) -> Request<Body> {
-    debug!("Creating Upstream Request {:?}", req);
-    let (mut parts, body) = req.into_parts();
-
-    parts.uri = Uri::builder()
-        .scheme(parts.uri.scheme().unwrap_or_else(|| &Scheme::HTTP).clone())
-        .authority(
-            parts
-                .headers
-                .get(HOST)
-                .expect("Missing Host header")
-                .to_str()
-                .expect("failed to parse Host header"),
-        )
-        .path_and_query(
-            parts
-                .uri
-                .path_and_query()
-                .expect("Cannot get path and query from original request")
-                .clone(),
-        )
-        .build()
-        .expect("Failed to build upstream URI");
-
-    return Request::from_parts(parts, body);
-}
-
-async fn proxy_req(client: ProxyClient, req: Request<Body>) -> Result<Response<Body>, Error> {
+async fn proxy_req<T: Proxy>(proxy: T, req: Request<Body>) -> Result<Response<Body>, Error> {
     debug!("Request {:?}", req);
 
-    let res = client.request(create_up_req(req)).await?;
+    let res = proxy.request(req).await?;
 
     debug!("Response {:?}", res);
 
@@ -61,16 +25,22 @@ async fn proxy_req(client: ProxyClient, req: Request<Body>) -> Result<Response<B
 
 #[tokio::main]
 async fn main() {
+    let args: Vec<String> = env::args().collect();
     pretty_env_logger::init();
 
     let addr = SocketAddr::from((
         [0, 0, 0, 0],
-        env::var("PORT").ok().map_or(3000, |v| v.parse().unwrap()),
+        env::var("PORT").map_or(3000, |v| v.parse().unwrap()),
     ));
 
-    let client = ProxyClient::new();
+    let upstream = match env::var("UPSTREAM") {
+        Ok(u) => u,
+        Err(_) => args.get(1).unwrap().to_string(),
+    };
 
-    info!("Starting Server on {}", addr);
+    info!("Starting Server on {} with upstream {}", addr, &upstream);
+
+    let client: FixedUpstream = proxy::FixedUpstream::new(upstream);
 
     // Call our `run_server` function, which returns a future.
     // As with every `async fn`, for `run_server` to do anything,
