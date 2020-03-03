@@ -35,7 +35,10 @@ async fn main() {
 
     let upstream = match env::var("UPSTREAM") {
         Ok(u) => u,
-        Err(_) => args.get(1).unwrap().to_string(),
+        Err(_) => args
+            .get(1)
+            .unwrap_or(&String::from("localhost:8080"))
+            .to_string(),
     };
 
     info!("Starting Server on {} with upstream {}", addr, &upstream);
@@ -51,7 +54,6 @@ async fn main() {
         // `Service` trait. `service_fn` returns a value implementing the
         // `Service` trait, and accepts a closure which goes from request
         // to a future of the response.
-        // nothing is passed to the closure because it's not anonymous '|_|'
         .serve(make_service_fn(move |_| {
             let client = client.clone();
             async move {
