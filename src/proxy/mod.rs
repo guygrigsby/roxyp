@@ -3,11 +3,7 @@ use {
     http::Uri,
     hyper::{
         client::{HttpConnector, ResponseFuture},
-        header::HOST,
-        //Error,
-        Body,
-        Client,
-        Request,
+        Body, Client, Request,
     },
     hyper_tls::HttpsConnector,
     log::debug,
@@ -66,44 +62,3 @@ impl FixedUpstream {
         return Request::from_parts(parts, body);
     }
 }
-//impl HostHeader {
-//    pub fn new() -> Self {
-//        let https = HttpsConnector::new();
-//
-//        HostHeader {
-//            http_client: Client::builder().build::<_, Body>(https),
-//        }
-//    }
-//
-//    pub fn request(&self, req: Request<Body>) -> ResponseFuture {
-//        debug!("Request in proxy client {:?}", req);
-//        return self.http_client.request(self.create_up_req(req));
-//    }
-//
-//    fn create_up_req(&self, req: Request<Body>) -> Request<Body> {
-//        debug!("Creating Upstream Request {:?}", req);
-//        let (mut parts, body) = req.into_parts();
-//
-//        parts.uri = Uri::builder()
-//            .scheme(parts.uri.scheme().unwrap_or_else(|| &Scheme::HTTPS).clone())
-//            .authority(
-//                parts
-//                    .headers
-//                    .get(HOST)
-//                    .expect("Missing Host header")
-//                    .to_str()
-//                    .expect("failed to parse Host header"),
-//            )
-//            .path_and_query(
-//                parts
-//                    .uri
-//                    .path_and_query()
-//                    .expect("Cannot get path and query from original request")
-//                    .clone(),
-//            )
-//            .build()
-//            .expect("Failed to build upstream URI");
-//
-//        return Request::from_parts(parts, body);
-//    }
-//}

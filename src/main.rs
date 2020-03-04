@@ -11,6 +11,7 @@ use {
     std::net::SocketAddr,
 };
 
+mod cache;
 mod proxy;
 
 async fn proxy_req<T: Proxy>(proxy: T, req: Request<Body>) -> Result<Response<Body>, Error> {
