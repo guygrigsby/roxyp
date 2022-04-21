@@ -14,6 +14,8 @@ use {
 mod cache;
 mod proxy;
 
+static FS: &[u8] = b"fileserver";
+
 async fn proxy_req<T: Proxy>(proxy: T, req: Request<Body>) -> Result<Response<Body>, Error> {
     debug!("Request {:?}", req);
 
@@ -24,14 +26,22 @@ async fn proxy_req<T: Proxy>(proxy: T, req: Request<Body>) -> Result<Response<Bo
     Ok(res)
 }
 
+async fn fs_req(_: Request<Body>) -> Result<Response<Body>, hyper::Error> {
+    Ok(Response::new(Body::from(FS)))
+}
+
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let args: Vec<String> = env::args().collect();
     pretty_env_logger::init();
 
-    let addr = SocketAddr::from((
+    let proxy_addr = SocketAddr::from((
         [0, 0, 0, 0],
         env::var("PORT").map_or(3000, |v| v.parse().unwrap()),
+    ));
+    let fs_addr = SocketAddr::from((
+        [0, 0, 0, 0],
+        env::var("FS_PORT").map_or(8080, |v| v.parse().unwrap()),
     ));
 
     let upstream = match env::var("UPSTREAM") {
@@ -42,14 +52,17 @@ async fn main() {
             .to_string(),
     };
 
-    info!("Starting Server on {} with upstream {}", addr, &upstream);
+    info!(
+        "Starting Server on {} with upstream {}",
+        proxy_addr, &upstream
+    );
 
     let client: FixedUpstream = proxy::FixedUpstream::new(upstream);
 
     // Call our `run_server` function, which returns a future.
     // As with every `async fn`, for `run_server` to do anything,
     // the returned future needs to be run using `await`;
-    let serve_future = Server::bind(&addr)
+    let proxy_srv = Server::bind(&proxy_addr)
         // Serve requests using our `async proxy_req` function.
         // `serve` takes a closure which returns a type implementing the
         // `Service` trait. `service_fn` returns a value implementing the
@@ -63,10 +76,18 @@ async fn main() {
                 }))
             }
         }));
+    let fs_srv = Server::bind(&fs_addr).serve(make_service_fn(|_| async {
+        Ok::<_, hyper::Error>(service_fn(fs_req))
+    }));
+    tokio::spawn(async move { fs_srv.await });
 
-    // Wait for the server to complete serving or exit with an error.
-    // If an error occurred, print it to stderr.
-    if let Err(e) = serve_future.await {
+    println!(
+        "Listening on (proxy)http://{} and (fs)http://{}",
+        proxy_addr, fs_addr
+    );
+
+    if let Err(e) = proxy_srv.await {
         eprintln!("server error: {}", e);
     }
+    Ok(())
 }

@@ -11,7 +11,7 @@ use {
 
 #[derive(Clone, Debug)]
 pub struct HostHeader {
-    http_client: Client<HttpsConnector<HttpConnector>, Body>,
+    //http_client: Client<HttpsConnector<HttpConnector>, Body>,
 }
 
 #[derive(Clone, Debug)]

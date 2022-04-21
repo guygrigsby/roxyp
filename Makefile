@@ -1,6 +1,6 @@
 ECHO_RUNNING = $(strip $(shell docker ps --format '{{.Image}}' | grep guygrigsby\/echo))
 
-run: echo
+run:
 	RUST_LOG=debug cargo run
 echo:
 ifeq (${ECHO_RUNNING},)
